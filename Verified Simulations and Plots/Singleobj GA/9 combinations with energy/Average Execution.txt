@@ -1,0 +1,3 @@
+6 m 11 s
+
+Computed over 9*50=450 executions

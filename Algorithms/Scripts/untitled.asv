@@ -1,0 +1,52 @@
+close all
+
+
+%% LINEPLOTS
+% figure
+% 
+% for j=1:size(histories,1)
+%     plot(histories(j,:));
+%     hold on
+% end
+% title("Best fit histories [CF = 0.2]")
+% 
+% % axis([0 1000 75 120])
+% 
+% xlabel("Generations")
+% ylabel("Best fit")
+% 
+% grid on
+% hold off
+
+%% BOXCHARTS
+
+figure
+
+allValues = [];
+genSteps = 5;
+maxGens = 500;
+
+figure
+CF = 0;
+MR = 0;
+for k=1:9
+    for i=1:genSteps
+    
+        for j=1:size(histories,1)
+            allValues(j,i) = allHistories{k}(j,i*maxGens/genSteps);
+        end
+
+    end
+
+    subplot(3,3,k)
+    boxchart(allValues)
+    CF = ceil(9/(3*k));
+    MR = 
+    title("Best fit histories")
+    xlabel("Generations")
+    ylabel("Best fit")
+    ylim([75 95])
+    grid on
+end
+
+% set(gca,'XTickLabel',{"1000","2000","3000","4000","5000","6000","7000","8000","9000","10000"});

@@ -1,0 +1,433 @@
+close all
+clear all
+clear figure
+
+mappp.points=[];
+
+mappp.lines=[];
+
+mapp = import_data_catia_vrml('estrusion_.wrl');
+
+for i=1:size(mapp.points,2)
+    if mapp.points(3,i)==0
+        mappp.points=[mappp.points; mapp.points(1,i) mapp.points(2,i)]; % to put in vertical
+    end
+end
+
+map.points=unique(mappp.points,'rows'); % to select the unique points
+
+for i=1:size(mapp.lines,2)
+    if mapp.points(3,mapp.lines(1,i))==0 && mapp.points(3,mapp.lines(2,i))==0
+        x1=mapp.points(1,mapp.lines(1,i)); 
+        y1=mapp.points(2,mapp.lines(1,i));
+        x2=mapp.points(1,mapp.lines(2,i)); 
+        y2=mapp.points(2,mapp.lines(2,i));
+        for j=1:size(map.points,1)
+            if x1==map.points(j,1) && y1==map.points(j,2)
+                jj=j;
+            end
+        end
+        for z=1:size(map.points,1)
+            if x2==map.points(z,1) && y2==map.points(z,2)
+                zz=z;
+            end
+        end
+        mappp.lines=[mappp.lines; jj zz];
+        
+    end
+end
+% map.lines=unique(mappp.lines, 'rows');
+map.lines=mappp.lines;
+
+max_x=max(map.points(:,1));
+min_x=min(map.points(:,1));
+
+max_y=max(map.points(:,2));
+min_y=min(map.points(:,2));
+
+%% Triangulation
+
+outerprofile=[];
+innerprofile=[];
+rows_to_exclude=[];
+rows_to_keep=[];
+
+
+outerprofile_=[1; 2; 22; 21]; %indices
+for i=1:size(outerprofile_,1)
+    outerprofile=[outerprofile; map.points(outerprofile_(i,1),1:2)]; %coordinates of points
+end
+
+for i=1:size(outerprofile,1)
+    for j=1:size(map.lines,1)
+        if outerprofile(i,1)==map.lines(j,1) || outerprofile(i,1)==map.lines(j,2) || outerprofile(i,2)==map.lines(j,1) || outerprofile(i,2)==map.lines(j,2)
+            rows_to_exclude=[rows_to_exclude; j];
+        end
+    end
+end
+
+rows_to_keep = setdiff(1:size(map.lines, 1), rows_to_exclude);
+innerprofile_ = map.lines(rows_to_keep, :);
+for i=1:size(innerprofile_,1)
+    innerprofile=[innerprofile; map.points(innerprofile_(i,1),1:2)];
+    innerprofile=[innerprofile; map.points(innerprofile_(i,2),1:2)];
+end
+outerprofile__=unique(outerprofile,'rows'); %coordinates
+innerprofile__=unique(innerprofile,'rows'); %coordinates
+
+P=[outerprofile__;innerprofile__];
+% innerc1=[10 9; 9 14; 14 13; 13 7; 7 8; 8 10];
+% innerc2=[6 12; 12 11; 11 5; 5 6];
+% innerc3=[16 18; 18 17; 17 15; 15 16];
+% innerc4=[20 22; 22 21; 21 19; 19 20];
+% %innerc=[8 7; 7 12; 12 11; 11 5; 5 6; 6 8; 4 10; 10 9; 9 3; 3 4; 4 10; 14 16; 16 15; 15 13; 13 14; 18 20; 20 19; 19 17; 17 18];
+% outerc=[4 24; 24 23; 23 3; 3 4];
+innerc1=[5 6; 6 8; 8 7; 7 12; 12 11; 11 5];
+innerc2=[3 4; 4 10; 10 9; 9 3];
+innerc3=[13 14; 14 16; 16 15; 15 13];
+innerc4=[17 18; 18 20; 20 19; 19 17];
+%innerc=[8 7; 7 12; 12 11; 11 5; 5 6; 6 8; 4 10; 10 9; 9 3; 3 4; 4 10; 14 16; 16 15; 15 13; 13 14; 18 20; 20 19; 19 17; 17 18];
+outerc=[1 2; 2 22; 22 21; 21 1];
+C=[outerc; innerc1; innerc2; innerc3; innerc4];
+
+% Triangulation
+triangulation = delaunayTriangulation(map.points,[5 11]);
+
+
+% Visualize
+figure
+triplot(triangulation);
+hold on;
+plot(map.points(:,1), map.points(:,2), 'ro');
+
+mmap.points=unique(map.points,'rows');
+% for i=1:size(mmap.points,1)
+% %     mmap.points=unique(map.points,'rows');
+%     text(mmap.points(i,1),mmap.points(i,2),num2str(i),'Color','red');
+% end
+
+% for i=1:size(map.points,1)
+%     text(map.points(i,1),map.points(i,2),num2str(i),'Color','red');
+% end
+for i=1:size(triangulation.Points,1)
+    text(triangulation.Points(i,1),triangulation.Points(i,2),num2str(i),'Color','red');
+end
+
+hold on 
+plot(triangulation.Points(innerc1',1),triangulation.Points(innerc1',2), ...
+     '-r','LineWidth',2)  
+plot(triangulation.Points(innerc2',1),triangulation.Points(innerc2',2), ...
+     '-r','LineWidth',2) 
+plot(triangulation.Points(innerc3',1),triangulation.Points(innerc3',2), ...
+     '-r','LineWidth',2) 
+plot(triangulation.Points(innerc4',1),triangulation.Points(innerc4',2), ...
+     '-r','LineWidth',2) 
+
+% plot(triangulation.Points(outerc',1),triangulation.Points(outerc',2), ...
+%      '-r','LineWidth',2)
+axis equal 
+
+
+%% Writing the number of the triangle in each triangle
+P=triangulation.Points;
+T=triangulation.ConnectivityList;
+
+vertices1 = P(T(:,1), :);
+vertices2 = P(T(:,2), :);
+vertices3 = P(T(:,3), :);
+
+triangle_centers = (vertices1 + vertices2 + vertices3) / 3;
+
+num_triangles = size(T, 1);
+
+for i = 1:num_triangles
+    % Get the center of the current triangle
+    center = triangle_centers(i, :);
+
+    % Display the triangle index at the center
+    text(center(1), center(2), num2str(i), 'HorizontalAlignment', 'center');
+end
+
+for i = 1:num_triangles
+    % Get the center of the current triangle
+    center = triangle_centers(i, :);
+
+    % Display the triangle index at the center
+    text(center(1), center(2), num2str(i), 'HorizontalAlignment', 'center');
+end
+%%
+% 
+% % To remove points inside the boundaries
+% hold on;
+% TF = isInterior(triangulation);
+% triplot(triangulation.ConnectivityList(TF,:),triangulation.Points(:,1),triangulation.Points(:,2))  
+% hold on
+% % plot(triangulation.Points(outercons',1),triangulation.Points(outercons',2), ...
+% %      '-r','LineWidth',2)
+% %plot(triangulation.Points(innerc1',1),triangulation.Points(innerc2',1),triangulation.Points(innerc3',1),triangulation.Points(innerc4',1),triangulation.Points(innerc1',2),triangulation.Points(innerc2',2),triangulation.Points(innerc3',2),triangulation.Points(innerc4',2), ...
+% %     '-r','LineWidth',2) 
+% axis equal;
+
+% List of the triangulation edges that are not real edges
+% virtual_edges=edgesExtraction(map, triangulation);
+
+conc_edges_=[];
+    for i=1:size(triangulation.ConnectivityList,1)
+        conc_edges_=[conc_edges_; triangulation.ConnectivityList(i,1) triangulation.ConnectivityList(i,2); triangulation.ConnectivityList(i,2) triangulation.ConnectivityList(i,3)];
+    end
+    conc_edges=unique(conc_edges_,'rows');
+
+
+
+
+%% RRT*
+% Define start and goal points
+startNode = [-0.1, -0.04];
+goalNode = [0.1, 0.05];
+
+maxIter=6000;
+
+
+%% Main loop
+
+nRowStart=whichTriangle(startNode, triangulation); %first input is a coordinate (x and y)
+nRowGoal=whichTriangle(goalNode, triangulation);
+
+queue = nRowStart;
+visitedTriangles = false(size(triangulation.ConnectivityList, 1), 1);
+visitedTriangles(nRowStart) = true;
+visited_order=[nRowStart];
+cont=0;
+
+first_triangle_edges=[triangulation.ConnectivityList(nRowStart,1) triangulation.ConnectivityList(nRowStart,2); triangulation.ConnectivityList(nRowStart,2) triangulation.ConnectivityList(nRowStart,3); triangulation.ConnectivityList(nRowStart,1) triangulation.ConnectivityList(nRowStart,3)];
+
+first_triangle_adj_triangles=[];
+for i=1:size(first_triangle_edges,1)
+    m=findTriangleContainingEdge(triangulation.ConnectivityList, first_triangle_edges(i,:), visitedTriangles);
+    first_triangle_adj_triangles=[first_triangle_adj_triangles; m];
+end
+
+realEdgesStart=findRealEdges(nRowStart, triangulation, map);
+virtualEdgesStart=findVirtualEdges(nRowStart, triangulation, realEdgesStart);
+
+loop=false;
+
+while ~isempty(queue)
+        
+        number_of_n=0;
+        flag=false;
+        currentTriangleIndex = queue(1);
+        queue(1) = [];
+
+        if currentTriangleIndex == nRowGoal
+            disp('Goal reached');
+            reconstructPath(triangulation, visited_order);
+            break;  
+        end
+       
+        realEdges=findRealEdges(currentTriangleIndex, triangulation, map);
+        virtualEdges=findVirtualEdges(currentTriangleIndex, triangulation, realEdges);
+
+        adjacentTriangles=[];
+       
+        bueno=false;
+        chosen=0;
+        all_vertices=0;
+
+        if cont~=0
+            previous_vertices=triangulation.ConnectivityList(visited_order(end-1),:);
+            while bueno==false
+                random_number = randi([1, size(virtualEdges,1)]);
+                all_vertices=all_vertices+1;
+                if ~any(ismember(chosen, random_number,"rows"))
+                    chosen=[chosen; random_number];
+                    n=findTriangleContainingEdge(triangulation.ConnectivityList, virtualEdges(random_number,:), visitedTriangles);
+                    disp('N:');
+                    disp(n);
+                    if n>0 && size(findRealEdges(n,triangulation, map),1)<=1
+                        triang_n_edges=[triangulation.ConnectivityList(n,1) triangulation.ConnectivityList(n,2); triangulation.ConnectivityList(n,2) triangulation.ConnectivityList(n,3); triangulation.ConnectivityList(n,1) triangulation.ConnectivityList(n,3)];
+                        for i=1:size(map.lines,1)
+                            for j=1:size(triang_n_edges,1)
+                                if segmentsIntersect(map.points(map.lines(i,1),:), map.points(map.lines(i,2),:), triangulation.Points(triang_n_edges(j,1),:), triangulation.Points(triang_n_edges(j,2),:))
+                                    bueno=false;
+                                    flag=true;
+                                    break;
+                                end
+                            end
+                            if flag==true
+                                break;
+                            end
+                        end
+                   
+                        if any(ismember(previous_vertices, virtualEdges(random_number,1))) && any(ismember(previous_vertices, virtualEdges(random_number,2)))
+                            bueno=false;
+                        % elseif size(findRealEdges(n,triangulation, map),1)>1
+                        %     bueno=false;
+                        else
+                            bueno=true;
+                            adjacentTriangle=n;
+                            if adjacentTriangle>0
+                                adjacentTriangles = [adjacentTriangles; adjacentTriangle];
+                                visited_order=[visited_order; adjacentTriangle];
+                            end
+                        end
+                    elseif n>0 && size(findRealEdges(n,triangulation, map),1)>1
+                        % visitedTriangles(n) = true;
+                         number_of_n=number_of_n+1;
+                    else 
+                        number_of_n=number_of_n+1;
+                    end
+                    if number_of_n>1
+                        disp('Entering exitLoop');
+                        disp(visited_order);
+                        [currentTriangleIndex, visited_order, adjacentTriangles] =  exitLoop(visited_order, triangulation, map, visitedTriangles, adjacentTriangles);
+                        disp('Exiting exitLoop');
+                        disp(visited_order);
+                        bueno=true;
+                        % number_of_n=0;
+                    end
+                end
+            end
+            % if loop==true
+            %     [currentTriangleIndex, v_order_, adjacentTriangles] =  exitLoop(visited_order, triangulation, map, first_triangle_edges, visitedTriangles, currentTriangleIndex, adjacentTriangles);
+            % end
+        else
+            random_number = randi([1, size(virtualEdges,1)]);
+            adjacentTriangle=findTriangleContainingEdge(triangulation.ConnectivityList, virtualEdges(random_number,:), visitedTriangles);
+            if adjacentTriangle>0
+               adjacentTriangles = [adjacentTriangles; adjacentTriangle];
+               visited_order=[visited_order; adjacentTriangle];
+            end
+        
+        end
+
+        queue = [queue; adjacentTriangles];
+        visitedTriangles(adjacentTriangles) = true;
+
+        cont=cont+1;
+end
+
+
+% Calculate edge centers
+num_triangles = length(visited_order);
+edge_centers = zeros(num_triangles - 1, 2); % Here I store the centers
+
+for i = 1:num_triangles-1
+    % Take indices of adjacent triangles
+    triangle1_index = visited_order(i);
+    triangle2_index = visited_order(i + 1);
+    
+    % Find indices of vertices shared between the two triangles
+    shared_vertices = intersect(triangulation.ConnectivityList(triangle1_index, :), triangulation.ConnectivityList(triangle2_index, :)); %like [17 19]
+ 
+    point1=triangulation.Points(shared_vertices(1),:);
+    point2=triangulation.Points(shared_vertices(2),:);
+    edge_center = mean([point1; point2]);
+    
+    % Store the edges center
+    edge_centers(i, :) = edge_center;
+end
+
+% Add start and goal
+edge_centers=vertcat(startNode, edge_centers);
+edge_centers=vertcat(edge_centers, goalNode);
+
+% Generate circles
+circle_radius = 0.005; 
+safety_margin = circle_radius + circle_radius*(10/100);
+
+hold on;
+
+for i = 1:size(edge_centers, 1)
+    % Edge's center
+    x_center = edge_centers(i, 1);
+    y_center = edge_centers(i, 2);
+    
+    % Draw circle on the edge
+    theta = linspace(0, 2*pi, 100); 
+    x_circle = x_center + circle_radius * cos(theta);
+    y_circle = y_center + circle_radius * sin(theta);
+    plot(x_circle, y_circle, 'r');
+end
+
+%% Collision check between the circumferences defining the trolleys and the obstacles
+
+all_free=0;
+for i = 1:size(edge_centers, 1)
+    % Circle center and radius
+    circle_center = edge_centers(i, :);
+    
+    % Check intersection with each line segment
+    intersects_any = false;
+    for j = 1:size(map.lines, 1)
+        segment_start = map.points(map.lines(j, 1),:);
+        segment_end = map.points(map.lines(j, 2),:);
+        
+        % Check intersection between circle and line segment
+        if circleLineIntersect(safety_margin, circle_center, circle_radius, segment_start, segment_end)
+            intersects_any = true;
+            break; 
+        end
+    end
+    
+    if intersects_any
+        fprintf('Circle %d intersects with at least one line segment.\n', i);
+    else
+        fprintf('Circle %d does not intersect with any line segment.\n', i);
+        all_free=all_free+1;
+    end
+end
+
+if all_free==size(edge_centers,1)
+
+    valid_connections = [];
+    num_points = size(edge_centers, 1);
+    for i = 1:num_points-1
+        % for j = i+1:num_points
+            % Define line segment between two center points
+            point1_ = edge_centers(i, :);
+            point2_ = edge_centers(i+1, :);
+
+            % Now I add the radius+safety margin
+            distance=sqrt((point2_(1)-point1_(1))^2 + (point2_(2)-point1_(1))^2)
+            point1=[point1_(1)-(safety_margin*(point2_(2)-point1_(2))/distance), point1_(2)+(safety_margin*(point2_(1)-point1_(1))/distance)];
+            point2=[point1_(1)-(safety_margin*(point2_(2)-point1_(2))/distance), point1_(2)+(safety_margin*(point2_(1)-point1_(1))/distance)];
+            
+            % Check if this line segment intersects with any map line
+            intersects_map_line = false;
+            for k = 1:size(map.lines, 1)
+                % Extract endpoints of map line segment
+                map_point1 = map.points(map.lines(k, 1),:);
+                map_point2 = map.points(map.lines(k, 2),:);
+                
+                % Check intersection between the two line segments
+                if k+1 <= size(map.lines, 1) && segmentsIntersect(point1, point2, map_point1, map_point2)
+                    intersects_map_line = true;
+                    break;
+                end
+            end
+            
+            % If no intersection with map lines, add to valid connections
+            if ~intersects_map_line
+                valid_connections = [valid_connections; point1, point2];
+            end
+        % end
+    end
+    x1=valid_connections(:,1);
+    y1=valid_connections(:,2);
+    x2=valid_connections(:,3);
+    y2=valid_connections(:,4);
+    
+    hold on;
+    % Plot valid connections
+    if ~isempty(valid_connections)
+        for i = 1:size(valid_connections, 1)
+            % Extract coordinates of the current line segment
+            x_coords = [x1(i), x2(i)];
+            y_coords = [y1(i), y2(i)];
+            
+            % Plot the line segment
+            plot(x_coords, y_coords, 'b-', 'LineWidth', 1.5);  % Customize line properties as needed
+        end
+    end
+end

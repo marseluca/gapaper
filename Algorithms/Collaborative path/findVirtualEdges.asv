@@ -1,0 +1,21 @@
+function edgeIndices=findVirtualEdges(nRowNode, conc_edges, triangulation, map) %nRowNode is the triangle (n-th row of Conn. List) in which the node is 
+    
+    
+    coordinates1=[triangulation.Points(triangulation.ConnectivityList(nRowNode,1),:); triangulation.Points(triangulation.ConnectivityList(nRowNode,2),:)];
+    coordinates2=[triangulation.Points(triangulation.ConnectivityList(nRowNode,2),:); triangulation.Points(triangulation.ConnectivityList(nRowNode,3),:)];
+    coordinates3=[triangulation.Points(triangulation.ConnectivityList(nRowNode,1),:); triangulation.Points(triangulation.ConnectivityList(nRowNode,3),:)];
+
+
+    for i=1:size(map.lines,1)
+        c1=map.points(map.lines(i,1),:);
+        c2=map.points(map.lines(i,2),:);
+        c=[c1; c2];
+
+        if c==coordinates1
+        elseif c==coordinates2
+        elseif c==coordinates3
+        end
+
+    end
+
+end

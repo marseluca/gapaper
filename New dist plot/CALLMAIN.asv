@@ -1,0 +1,116 @@
+%% COMBINATIONS
+
+maxRetries = 30; % Define the maximum number of retries
+
+for attempt = 1:maxRetries
+
+    try
+
+        global maxGen popSize crossoverFraction mutationRate bestFitHistory constraintHistory;
+
+        allFitHistories = {};
+        allConstHistories = {};
+
+        maxItr = 50;
+        maxGen = 500;
+        popSize = 100;
+        CF = [0.3 0.6 0.9];
+        MR = [0.01 0.05 0.1];
+
+        for i=1:9
+            allFitHistories{i} = zeros(maxItr,maxGen+1);
+            allConstHistories{i} = zeros(maxItr,maxGen+1);
+        end
+
+
+        for itr=1:maxItr
+
+            iteration = 1;
+
+            for ii=1:length(CF)
+
+                for jj=1:length(MR)
+
+                    fprintf("[%s] Iteration: %d, Combination: %d/9",datestr(now,'HH:MM'),itr,iteration)
+
+                    crossoverFraction = CF(ii);
+                    mutationRate = MR(jj);
+
+                    bestFitHistory = [];
+                    constraintHistory = [];
+
+                    pp_main;
+
+                    allFitHistories{iteration}(itr,:) = bestFitHistory;
+                    allConstHistories{iteration}(itr,:) = constraintHistory;
+
+                    iteration = iteration + 1;
+
+                end
+
+            end
+
+            save("opt_data"+num2str(attempt)+".mat","allHistories");
+
+        end
+
+        % save("opt_data.mat","allPopulations","allGenerations","allHistories","allExecutions")
+        disp("Results saved in opt_data.mat")
+
+        break; % Exit loop if successful
+
+    catch ME
+        disp(['Attempt ', num2str(attempt), ' failed: ', ME.message]);
+        if attempt == maxRetries
+            disp('Reached maximum retries. Stopping.');
+        else
+            pause(1); % Optional pause before retrying
+        end
+    end
+end
+
+%% SINGLE EXECUTIONS
+
+maxRetries = 100; % Define the maximum number of retries
+
+for attempt = 1:maxRetries
+
+    try
+
+        global maxGen popSize crossoverFraction mutationRate bestFitHistory;
+
+        maxItr = 50;
+        maxGen = 500;
+        popSize = 50;
+        crossoverFraction = 0.9;
+        mutationRate = 0.01;
+
+        allHistories = zeros(maxItr,maxGen+2);
+
+        for itr=1:maxItr
+
+            bestFitHistory = [];
+
+            pp_main;
+
+            allHistories(itr,:) = bestFitHistory;
+
+            save("opt_data"+num2str(attempt)+".mat","allHistories");
+
+        end
+
+        % save("opt_data.mat","allPopulations","allGenerations","allHistories","allExecutions")
+        disp("Results saved in opt_data.mat")
+
+        break; % Exit loop if successful
+
+    catch ME
+        disp(['Attempt ', num2str(attempt), ' failed: ', ME.message]);
+        if attempt == maxRetries
+            disp('Reached maximum retries. Stopping.');
+        else
+            pause(1); % Optional pause before retrying
+        end
+    end
+end
+
